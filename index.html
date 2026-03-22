@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Study Plan</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap');
+:root {
+  --bg:#0e0e0f;--surface:#161618;--surface2:#1e1e21;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.12);
+  --text:#e8e8e6;--muted:#666;--muted2:#444;
+  --maths:#3ecf8e;--maths-dim:rgba(62,207,142,0.12);
+  --physics:#5b9cf6;--physics-dim:rgba(91,156,246,0.12);
+  --cs:#a78bfa;--cs-dim:rgba(167,139,250,0.12);
+  --red:#f87171;--red-dim:rgba(248,113,113,0.12);
+  --amber:#fbbf24;
+  --mono:'DM Mono',monospace;--sans:'DM Sans',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;min-height:100vh;}
+#keyScreen{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:100;}
+#keyScreen.hidden{display:none;}
+.key-box{background:var(--surface);border:1px solid var(--border2);border-radius:12px;padding:32px;width:420px;display:flex;flex-direction:column;gap:16px;}
+.key-title{font-family:var(--mono);font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;}
+.key-desc{font-size:13px;color:var(--muted);line-height:1.6;}
+.key-input{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-family:var(--mono);font-size:12px;outline:none;width:100%;transition:border-color .15s;}
+.key-input:focus{border-color:var(--border2);}
+.key-input::placeholder{color:var(--muted2);}
+.key-btn{background:var(--maths);border:none;border-radius:8px;padding:10px 16px;color:#000;font-family:var(--sans);font-size:13px;font-weight:500;cursor:pointer;transition:opacity .15s;}
+.key-btn:hover{opacity:.85;}
+.key-err{font-size:11px;color:var(--red);display:none;}
+.app{display:flex;height:100vh;overflow:hidden;}
+.sidebar{width:260px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;}
+.sidebar-top{padding:20px 18px 16px;border-bottom:1px solid var(--border);}
+.app-title{font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:16px;}
+.exam-list{display:flex;flex-direction:column;gap:6px;}
+.exam-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);}
+.exam-days{font-family:var(--mono);font-size:13px;font-weight:500;min-width:28px;text-align:center;}
+.exam-info{flex:1;min-width:0;}
+.exam-name{font-size:11px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.exam-date{font-size:10px;color:var(--muted);font-family:var(--mono);}
+.days-urgent{color:var(--red);}
+.days-soon{color:var(--amber);}
+.days-ok{color:var(--maths);}
+.subject-key{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:6px;}
+.key-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px;}
+.key-item{display:flex;align-items:center;gap:7px;font-size:12px;}
+.key-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.stats-section{padding:14px 18px;flex:1;overflow-y:auto;}
+.stat-row{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+.stat-label{font-size:11px;color:var(--muted);flex:1;}
+.stat-bar{flex:1;height:3px;background:var(--surface2);border-radius:2px;overflow:hidden;}
+.stat-fill{height:100%;border-radius:2px;transition:width .5s ease;}
+.stat-val{font-family:var(--mono);font-size:10px;color:var(--muted);min-width:24px;text-align:right;}
+.reset-key{margin:12px 18px 0;font-size:10px;color:var(--muted2);cursor:pointer;font-family:var(--mono);text-decoration:underline;text-align:center;display:block;}
+.reset-key:hover{color:var(--muted);}
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+.plan-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;}
+.phase-tabs{display:flex;gap:4px;flex:1;}
+.phase-tab{font-size:11px;font-family:var(--mono);padding:5px 12px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;transition:all .15s;}
+.phase-tab:hover{border-color:var(--border2);color:var(--text);}
+.phase-tab.active{background:var(--surface2);border-color:var(--border2);color:var(--text);}
+.today-badge{font-family:var(--mono);font-size:10px;color:var(--muted);padding:4px 10px;border:1px solid var(--border);border-radius:6px;}
+.plan-body{flex:1;overflow-y:auto;padding:16px 20px;}
+.day-card{border:1px solid var(--border);border-radius:10px;margin-bottom:8px;overflow:hidden;transition:border-color .15s;}
+.day-card:hover{border-color:var(--border2);}
+.day-card.today{border-color:rgba(62,207,142,0.3);}
+.day-card.exam-day{border-color:rgba(248,113,113,0.3);}
+.day-card.done{opacity:.5;}
+.day-hdr{display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;background:var(--surface);}
+.day-card.today .day-hdr{background:rgba(62,207,142,0.04);}
+.day-card.exam-day .day-hdr{background:rgba(248,113,113,0.04);}
+.day-date{font-family:var(--mono);font-size:11px;color:var(--muted);min-width:80px;}
+.day-label{font-size:13px;font-weight:500;color:var(--text);flex:1;}
+.day-tags{display:flex;gap:4px;}
+.dtag{font-size:10px;padding:2px 6px;border-radius:4px;font-family:var(--mono);}
+.dtag-m{background:var(--maths-dim);color:var(--maths);}
+.dtag-p{background:var(--physics-dim);color:var(--physics);}
+.dtag-c{background:var(--cs-dim);color:var(--cs);}
+.dtag-r{background:rgba(255,255,255,0.05);color:var(--muted);}
+.dtag-e{background:var(--red-dim);color:var(--red);}
+.done-check{width:20px;height:20px;border-radius:50%;border:1px solid var(--border2);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:10px;color:transparent;transition:all .15s;flex-shrink:0;}
+.done-check:hover{border-color:var(--maths);}
+.done-check.checked{background:var(--maths);border-color:var(--maths);color:#000;}
+.chevron{font-size:10px;color:var(--muted);transition:transform .2s;flex-shrink:0;}
+.chevron.open{transform:rotate(180deg);}
+.day-body{display:none;border-top:1px solid var(--border);padding:12px 14px;background:var(--surface);}
+.day-body.open{display:block;}
+.exam-banner{background:var(--red-dim);border:1px solid rgba(248,113,113,0.2);border-radius:6px;padding:7px 10px;margin-bottom:10px;font-size:11px;color:var(--red);font-family:var(--mono);}
+.note-banner{background:var(--surface2);border-radius:6px;padding:7px 10px;margin-bottom:10px;font-size:11px;color:var(--muted);font-style:italic;}
+.ai-note{background:var(--maths-dim);border-left:2px solid var(--maths);border-radius:0 6px 6px 0;padding:7px 10px;margin-bottom:10px;font-size:11px;color:var(--maths);}
+.task-list{list-style:none;display:flex;flex-direction:column;gap:7px;}
+.task-item{display:flex;align-items:flex-start;gap:8px;font-size:12px;line-height:1.5;color:var(--text);}
+.task-dot{width:5px;height:5px;border-radius:50%;margin-top:5px;flex-shrink:0;}
+.tdm{background:var(--maths);}
+.tdp{background:var(--physics);}
+.tdc{background:var(--cs);}
+.tdr{background:var(--muted2);}
+.task-time{font-family:var(--mono);font-size:10px;color:var(--muted);margin-left:auto;padding-left:8px;white-space:nowrap;flex-shrink:0;}
+.chat-panel{width:320px;flex-shrink:0;border-left:1px solid var(--border);display:flex;flex-direction:column;background:var(--surface);}
+.chat-header{padding:14px 16px;border-bottom:1px solid var(--border);font-size:11px;font-family:var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.08em;}
+.chat-messages{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px;}
+.msg{padding:9px 11px;border-radius:8px;font-size:12px;line-height:1.6;max-width:100%;word-wrap:break-word;}
+.msg-user{background:var(--surface2);border:1px solid var(--border);color:var(--text);align-self:flex-end;max-width:85%;}
+.msg-ai{background:rgba(62,207,142,0.08);border:1px solid rgba(62,207,142,0.15);color:var(--text);align-self:flex-start;max-width:95%;}
+.msg-thinking{display:flex;gap:4px;align-items:center;padding:9px 11px;}
+.dot-pulse{width:5px;height:5px;border-radius:50%;background:var(--maths);animation:pulse 1.2s infinite;}
+.dot-pulse:nth-child(2){animation-delay:.2s;}
+.dot-pulse:nth-child(3){animation-delay:.4s;}
+@keyframes pulse{0%,80%,100%{opacity:.3;transform:scale(.8);}40%{opacity:1;transform:scale(1);}}
+.chat-input-area{padding:12px;border-top:1px solid var(--border);display:flex;gap:8px;align-items:flex-end;}
+.chat-input{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text);font-family:var(--sans);font-size:12px;resize:none;outline:none;min-height:36px;max-height:100px;transition:border-color .15s;}
+.chat-input:focus{border-color:var(--border2);}
+.chat-input::placeholder{color:var(--muted);}
+.send-btn{background:var(--maths);border:none;border-radius:8px;width:32px;height:32px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#000;font-size:13px;flex-shrink:0;transition:opacity .15s;}
+.send-btn:hover{opacity:.85;}
+.send-btn:disabled{opacity:.4;cursor:default;}
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--muted2);border-radius:2px;}
+</style>
+</head>
+<body>
+<div id="keyScreen">
+  <div class="key-box">
+    <div class="key-title">Study Plan · AS 2026</div>
+    <div class="key-desc">Paste your Anthropic API key to enable dynamic replanning. Saved locally in your browser only — never stored anywhere else.</div>
+    <input class="key-input" id="keyInput" type="password" placeholder="sk-ant-api03-..." />
+    <div class="key-err" id="keyErr">Invalid key — make sure you copied the full key.</div>
+    <button class="key-btn" onclick="submitKey()">Load plan →</button>
+  </div>
+</div>
+
+<div class="app">
+  <div class="sidebar">
+    <div class="sidebar-top">
+      <div class="app-title">Study Plan · AS 2026</div>
+      <div class="exam-list" id="examList"></div>
+    </div>
+    <div class="subject-key">
+      <div class="key-label">Subjects</div>
+      <div class="key-item"><div class="key-dot" style="background:var(--maths)"></div>Maths (A*)</div>
+      <div class="key-item"><div class="key-dot" style="background:var(--physics)"></div>Physics (A)</div>
+      <div class="key-item"><div class="key-dot" style="background:var(--cs)"></div>Computer Science (A)</div>
+    </div>
+    <div class="stats-section">
+      <div class="key-label" style="margin-bottom:10px;">Current standing</div>
+      <div id="statsPanel"></div>
+    </div>
+    <span class="reset-key" onclick="resetKey()">change api key</span>
+  </div>
+  <div class="main">
+    <div class="plan-header">
+      <div class="phase-tabs">
+        <button class="phase-tab active" onclick="switchPhase(1)">Phase 1</button>
+        <button class="phase-tab" onclick="switchPhase(2)">Phase 2</button>
+        <button class="phase-tab" onclick="switchPhase(3)">Phase 3</button>
+      </div>
+      <div class="today-badge" id="todayBadge"></div>
+    </div>
+    <div class="plan-body" id="planBody"></div>
+  </div>
+  <div class="chat-panel">
+    <div class="chat-header">Update your plan</div>
+    <div class="chat-messages" id="chatMessages">
+      <div class="msg msg-ai">Hey! Tell me anything — grades, how long you studied, skipped sessions, upcoming tests. I'll rewrite the plan on the spot.</div>
+    </div>
+    <div class="chat-input-area">
+      <textarea class="chat-input" id="chatInput" placeholder="e.g. got 68% on mechanics paper 1..." rows="1"></textarea>
+      <button class="send-btn" id="sendBtn" onclick="sendMessage()">↑</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const PROXY_URL = "https://study-proxy.vercel.app/api/chat";
+
+const EXAMS=[
+  {short:"Phys P31",date:"2026-04-28"},{short:"Maths P1",date:"2026-04-29"},
+  {short:"Maths P4",date:"2026-05-06"},{short:"CS P1",date:"2026-05-08"},
+  {short:"Maths P5",date:"2026-05-12"},{short:"CS P2",date:"2026-05-13"},
+  {short:"Maths P3",date:"2026-05-15"},{short:"Phys P21",date:"2026-05-20"},
+  {short:"Phys P11",date:"2026-06-03"},
+];
+const DEFAULT_STATS=[
+  {label:"Pure 1",pct:88,color:"var(--maths)"},{label:"Stats",pct:80,color:"var(--maths)"},
+  {label:"Mechanics",pct:0,color:"var(--muted2)"},{label:"Pure 3",pct:0,color:"var(--muted2)"},
+  {label:"CS Theory",pct:82,color:"var(--cs)"},{label:"CS Prog",pct:65,color:"var(--cs)"},
+  {label:"Physics",pct:0,color:"var(--muted2)"},
+];
+const DEFAULT_PLAN=[
+  {phase:1,lbl:"Mon 23 Mar",date:"2026-03-23",tags:["m","m"],exam:null,note:"Mechanics self-study begins.",tasks:[
+    {d:"dm",t:"Mechanics Ch 1 — kinematics (SUVAT). Read, notes, all worked examples.",time:"75 min"},
+    {d:"dm",t:"Ch 1 exercise questions. Check every answer.",time:"30 min"}]},
+  {phase:1,lbl:"Tue 24 Mar",date:"2026-03-24",tags:["m","m"],exam:null,note:null,tasks:[
+    {d:"dm",t:"Mechanics Ch 2 — forces and Newton's laws. Notes + examples.",time:"75 min"},
+    {d:"dm",t:"Pure 3: Ch 4 content. Read + note key methods.",time:"30 min"}]},
+  {phase:1,lbl:"Wed 25 Mar",date:"2026-03-25",tags:["m","p","c"],exam:null,note:"CS test today — adjust session.",tasks:[
+    {d:"dc",t:"CS test revision — quick review of key topics before the test.",time:"45 min"},
+    {d:"dm",t:"Mechanics Ch 3 — friction, connected particles. Notes + exercises.",time:"60 min"},
+    {d:"dp",t:"Physics P31: read syllabus, go through a past P31 mark scheme.",time:"20 min"}]},
+  {phase:1,lbl:"Thu 26 Mar",date:"2026-03-26",tags:["m","m"],exam:null,note:null,tasks:[
+    {d:"dm",t:"Mechanics Ch 4 — moments. Notes + exercises.",time:"75 min"},
+    {d:"dm",t:"Pure 3: Ch 5 content + examples.",time:"30 min"}]},
+  {phase:1,lbl:"Fri 27 Mar",date:"2026-03-27",tags:["m","p"],exam:null,note:null,tasks:[
+    {d:"dm",t:"Mechanics Ch 5 — energy, work, power. Notes + exercises.",time:"75 min"},
+    {d:"dp",t:"Physics P31: first past paper timed. This is your baseline.",time:"45 min"}]},
+  {phase:1,lbl:"Sat 28 Mar",date:"2026-03-28",tags:["m","m","p"],exam:null,note:"Weekend — push to 3h+",tasks:[
+    {d:"dm",t:"Mechanics Ch 6 — projectiles. Heavy chapter. Notes + all exercises.",time:"90 min"},
+    {d:"dm",t:"Pure 3: Ch 6 content + worked examples.",time:"60 min"},
+    {d:"dp",t:"Physics P31: review Friday's paper. Fix every wrong answer with mark scheme.",time:"30 min"}]},
+  {phase:1,lbl:"Sun 29 Mar",date:"2026-03-29",tags:["m","m","r"],exam:null,note:null,tasks:[
+    {d:"dm",t:"Mechanics Ch 7+ — finish content sweep.",time:"90 min"},
+    {d:"dm",t:"Stats P5: one past paper timed. Prove that 80% consistently.",time:"75 min"},
+    {d:"dr",t:"Rest of day off.",time:""}]},
+  {phase:1,lbl:"Mon 30 Mar",date:"2026-03-30",tags:["m","m"],exam:null,note:null,tasks:[
+    {d:"dm",t:"Mechanics: FIRST PAST PAPER. Timed. You've done the content — now test it.",time:"75 min"},
+    {d:"dm",t:"Pure 3: Ch 7 content + exercises.",time:"30 min"}]},
+  {phase:1,lbl:"Tue 31 Mar",date:"2026-03-31",tags:["m","c"],exam:null,note:null,tasks:[
+    {d:"dm",t:"Mechanics paper 1: mark it. Every wrong answer — what topic, what mistake?",time:"45 min"},
+    {d:"dc",t:"CS P2: one past paper timed.",time:"75 min"}]},
+  {phase:1,lbl:"Wed 1 Apr",date:"2026-04-01",tags:["m","m"],exam:null,note:null,tasks:[
+    {d:"dm",t:"Pure 3: Ch 8–9 content. Finish the syllabus.",time:"75 min"},
+    {d:"dm",t:"Mechanics: paper 2.",time:"75 min"}]},
+  {phase:1,lbl:"Thu 2 Apr",date:"2026-04-02",tags:["m","p"],exam:null,note:null,tasks:[
+    {d:"dm",t:"Pure 3: FIRST PAST PAPER. Timed. Mark it.",time:"90 min"},
+    {d:"dp",t:"Physics P31: paper 2.",time:"45 min"}]},
+  {phase:1,lbl:"Fri 3 Apr",date:"2026-04-03",tags:["m","m"],exam:null,note:null,tasks:[
+    {d:"dm",t:"Pure 3: review paper 1. Fix every mistake. Find weak chapters.",time:"45 min"},
+    {d:"dm",t:"Stats P5: past paper 2. Above 75% consistently?",time:"75 min"}]},
+  {phase:1,lbl:"Sat 4 Apr",date:"2026-04-04",tags:["m","m","p"],exam:null,note:"Big Saturday — 3.5h target",tasks:[
+    {d:"dm",t:"Mechanics: paper 3.",time:"75 min"},
+    {d:"dm",t:"Pure 3: paper 2.",time:"90 min"},
+    {d:"dp",t:"Physics P21: first past paper. Baseline check.",time:"60 min"}]},
+  {phase:1,lbl:"Sun 5 Apr",date:"2026-04-05",tags:["m","c","r"],exam:null,note:null,tasks:[
+    {d:"dm",t:"Pure 1: one past paper. Don't let it slip — exam 29 Apr.",time:"90 min"},
+    {d:"dc",t:"CS P1: one theory paper. Maintenance.",time:"60 min"},
+    {d:"dr",t:"Rest day from 3pm.",time:""}]},
+  {phase:1,lbl:"Mon 6 Apr",date:"2026-04-06",tags:["m","m"],exam:null,note:null,tasks:[
+    {d:"dm",t:"Mechanics: paper 4. Push for A threshold.",time:"75 min"},
+    {d:"dm",t:"Stats P5: paper 3.",time:"75 min"}]},
+  {phase:1,lbl:"Tue 7 Apr",date:"2026-04-07",tags:["m","p"],exam:null,note:"Last school day before study leave",tasks:[
+    {d:"dm",t:"Pure 3: paper 3. Targeting A threshold.",time:"90 min"},
+    {d:"dp",t:"Physics P31: paper 3.",time:"45 min"}]},
+  {phase:2,lbl:"Wed 8 Apr",date:"2026-04-08",tags:["m","m","m","p"],exam:null,note:"Study leave day 1. Set the tone.",tasks:[
+    {d:"dm",t:"Mechanics: paper 5. Full exam conditions.",time:"75 min"},
+    {d:"dm",t:"Pure 3: paper 4.",time:"90 min"},
+    {d:"dm",t:"Stats: paper 4.",time:"75 min"},
+    {d:"dp",t:"Physics P21: paper 2.",time:"60 min"}]},
+  {phase:2,lbl:"Thu 9 Apr",date:"2026-04-09",tags:["m","m","p","c"],exam:null,note:null,tasks:[
+    {d:"dm",t:"Pure 1: paper 2. Aim for 88%+.",time:"90 min"},
+    {d:"dm",t:"Mechanics: review papers 3–5. What's still dropping?",time:"45 min"},
+    {d:"dp",t:"Physics P11 MCQ: content review of weakest AS topics.",time:"60 min"},
+    {d:"dc",t:"CS P2: one paper.",time:"75 min"}]},
+  {phase:2,lbl:"Fri 10 Apr",date:"2026-04-10",tags:["m","m","m"],exam:null,note:null,tasks:[
+    {d:"dm",t:"Mechanics: paper 6.",time:"75 min"},
+    {d:"dm",t:"Pure 3: paper 5.",time:"90 min"},
+    {d:"dm",t:"Stats: paper 5.",time:"75 min"}]},
+  {phase:2,lbl:"Sat 11 Apr",date:"2026-04-11",tags:["m","p","c"],exam:null,note:null,tasks:[
+    {d:"dm",t:"Pure 1 + Pure 3: combined review of all mistakes so far.",time:"90 min"},
+    {d:"dp",t:"Physics P31: paper 4.",time:"60 min"},
+    {d:"dc",t:"CS P2: push for clean A.",time:"75 min"}]},
+  {phase:2,lbl:"Sun 12 Apr",date:"2026-04-12",tags:["r"],exam:null,note:"Full rest day. Non-negotiable.",tasks:[
+    {d:"dr",t:"Do nothing academic. 3 weeks solid — you've earned it.",time:""}]},
+  {phase:2,lbl:"Mon 13 Apr",date:"2026-04-13",tags:["m","m","p"],exam:null,note:null,tasks:[
+    {d:"dm",t:"Mechanics: paper 7.",time:"75 min"},
+    {d:"dm",t:"Pure 3: paper 6.",time:"90 min"},
+    {d:"dp",t:"Physics P21: paper 3.",time:"60 min"}]},
+  {phase:2,lbl:"Tue 14 Apr",date:"2026-04-14",tags:["m","m","p"],exam:null,note:null,tasks:[
+    {d:"dm",t:"Stats: paper 6. Below 80% on any topic — target it today.",time:"75 min"},
+    {d:"dm",t:"Pure 1: paper 3. A* threshold consistently.",time:"90 min"},
+    {d:"dp",t:"Physics P11 MCQ: first MCQ past paper.",time:"60 min"}]},
+  {phase:2,lbl:"Wed 15 Apr",date:"2026-04-15",tags:["m","m","p"],exam:null,note:null,tasks:[
+    {d:"dm",t:"Mechanics: paper 8.",time:"75 min"},
+    {d:"dm",t:"Pure 3: paper 7.",time:"90 min"},
+    {d:"dp",t:"Physics P31: paper 5.",time:"60 min"}]},
+  {phase:2,lbl:"Thu 16 Apr",date:"2026-04-16",tags:["m","m","c"],exam:null,note:null,tasks:[
+    {d:"dm",t:"Full mock — Pure 1. 110 min, strict exam conditions.",time:"110 min"},
+    {d:"dm",t:"Stats: paper 7.",time:"75 min"},
+    {d:"dc",t:"CS P1: one paper.",time:"60 min"}]},
+  {phase:2,lbl:"Fri 17 Apr",date:"2026-04-17",tags:["m","m","p"],exam:null,note:null,tasks:[
+    {d:"dm",t:"Mechanics: full mock.",time:"75 min"},
+    {d:"dm",t:"Pure 3: paper 8.",time:"90 min"},
+    {d:"dp",t:"Physics P21: paper 4.",time:"60 min"}]},
+  {phase:2,lbl:"Sat 18 Apr",date:"2026-04-18",tags:["m","p","c"],exam:null,note:null,tasks:[
+    {d:"dm",t:"Stats: paper 8. Last big stats session before exam run.",time:"75 min"},
+    {d:"dp",t:"Physics P11 MCQ: paper 2.",time:"60 min"},
+    {d:"dc",t:"CS P2: nail it.",time:"75 min"}]},
+  {phase:2,lbl:"Sun 19 Apr",date:"2026-04-19",tags:["r"],exam:null,note:"Rest day. 9 days to first exam.",tasks:[
+    {d:"dr",t:"Light reading only if you want. Otherwise full rest.",time:""}]},
+  {phase:2,lbl:"Mon 20 Apr",date:"2026-04-20",tags:["m","m","p"],exam:null,note:"Final stretch begins",tasks:[
+    {d:"dm",t:"Pure 1: review all papers. Personal mistake list. Fix them.",time:"90 min"},
+    {d:"dm",t:"Mechanics: weak topic drill.",time:"60 min"},
+    {d:"dp",t:"Physics P31: paper 6.",time:"60 min"}]},
+  {phase:2,lbl:"Tue 21 Apr",date:"2026-04-21",tags:["m","m"],exam:null,note:null,tasks:[
+    {d:"dm",t:"Pure 3: final paper. Are you A-grade?",time:"90 min"},
+    {d:"dm",t:"Stats: final paper before exam. Above 80% consistently?",time:"75 min"}]},
+  {phase:2,lbl:"Wed 22 Apr",date:"2026-04-22",tags:["m","p"],exam:null,note:null,tasks:[
+    {d:"dm",t:"Mechanics: final paper. Lock it in.",time:"75 min"},
+    {d:"dp",t:"Physics P21: paper 5.",time:"60 min"}]},
+  {phase:2,lbl:"23–27 Apr",date:"2026-04-23",tags:["m","p"],exam:null,note:"Final pre-exam prep. No new papers.",tasks:[
+    {d:"dm",t:"Pure 1 + Mechanics: mark schemes only. Personal mistake list.",time:"1h/day"},
+    {d:"dp",t:"Physics P31: practical skills notes. Mark scheme patterns.",time:"30 min/day"},
+    {d:"dr",t:"Sleep 8h. Eat properly.",time:""}]},
+  {phase:3,lbl:"28 Apr — EXAM",date:"2026-04-28",tags:["e","p"],exam:"Physics P31 — Advanced Practical Skills 1",tasks:[
+    {d:"dp",t:"Morning: practical skills — units, sig figs, uncertainty. 30 min max.",time:"30 min"},
+    {d:"dm",t:"Post-exam: light Pure 1 review. Exam tomorrow.",time:"30 min"}]},
+  {phase:3,lbl:"29 Apr — EXAM",date:"2026-04-29",tags:["e","m"],exam:"Maths Pure 1 — Paper 12",tasks:[
+    {d:"dm",t:"Morning: formula run-through. Key integration/differentiation. Calm.",time:"30 min"},
+    {d:"dm",t:"Post-exam: Mechanics focused review for 6 May.",time:"45 min"}]},
+  {phase:3,lbl:"30 Apr – 5 May",date:"2026-04-30",tags:["m","m","p"],exam:null,note:"6 days — use them.",tasks:[
+    {d:"dm",t:"Mechanics: 1 paper/day days 1–3. Mark scheme review only days 4–6.",time:"75 min"},
+    {d:"dm",t:"Stats: 1 paper day 2. Keep it warm.",time:"75 min"},
+    {d:"dp",t:"Physics P21: 1 paper every other day.",time:"60 min"}]},
+  {phase:3,lbl:"6 May — EXAM",date:"2026-05-06",tags:["e","m"],exam:"Maths Mechanics — Paper 42",tasks:[
+    {d:"dm",t:"Morning: SUVAT, Newton's laws, energy equations. Quick check.",time:"25 min"},
+    {d:"dm",t:"Post-exam: Stats review in earnest.",time:"45 min"}]},
+  {phase:3,lbl:"7 May",date:"2026-05-07",tags:["m","c"],exam:null,note:null,tasks:[
+    {d:"dm",t:"Stats: one final paper. Confidence building.",time:"75 min"},
+    {d:"dc",t:"CS P1: light review. Exam tomorrow. You're solid.",time:"40 min"}]},
+  {phase:3,lbl:"8 May — EXAM",date:"2026-05-08",tags:["e","c"],exam:"CS Theory Fundamentals — Paper 12",tasks:[
+    {d:"dc",t:"Morning: skim key CS topics. 13+ papers done. Trust the work.",time:"20 min"},
+    {d:"dm",t:"Post-exam: Stats final prep for 12 May.",time:"45 min"}]},
+  {phase:3,lbl:"9–11 May",date:"2026-05-09",tags:["m","c"],exam:null,note:null,tasks:[
+    {d:"dm",t:"Stats: mark scheme review + topic drill on anything dropping.",time:"60 min"},
+    {d:"dc",t:"CS P2: one paper per day. Exam 13 May.",time:"75 min"}]},
+  {phase:3,lbl:"12 May — EXAM",date:"2026-05-12",tags:["e","m"],exam:"Maths Probability & Statistics — Paper 52",tasks:[
+    {d:"dm",t:"Morning: distributions, hypothesis testing. Key formulas only.",time:"25 min"},
+    {d:"dc",t:"Post-exam: CS P2 final review.",time:"30 min"}]},
+  {phase:3,lbl:"13 May — EXAM",date:"2026-05-13",tags:["e","c"],exam:"CS Programming Skills — Paper 22",tasks:[
+    {d:"dc",t:"Morning: algorithm design quick scan.",time:"20 min"},
+    {d:"dm",t:"Post-exam: Pure 3 and P21 review ramp up.",time:"45 min"}]},
+  {phase:3,lbl:"14–19 May",date:"2026-05-14",tags:["m","p"],exam:null,note:null,tasks:[
+    {d:"dm",t:"Pure 3: 1 paper/day for 3 days, then mark scheme review only.",time:"90 min"},
+    {d:"dp",t:"Physics P21: 1 paper every other day.",time:"60 min"}]},
+  {phase:3,lbl:"15 May — EXAM",date:"2026-05-15",tags:["e","m"],exam:"Maths Pure 3 — Paper 32",tasks:[
+    {d:"dm",t:"Morning: Pure 3 formulas and key techniques.",time:"25 min"},
+    {d:"dp",t:"Post-exam: P21 in 5 days. Focused review.",time:"45 min"}]},
+  {phase:3,lbl:"20 May — EXAM",date:"2026-05-20",tags:["e","p"],exam:"Physics P21 — AS Structured Questions",tasks:[
+    {d:"dp",t:"Morning: AS physics topic scan.",time:"25 min"},
+    {d:"dp",t:"Post-exam: P11 MCQ prep ramps up.",time:"45 min"}]},
+  {phase:3,lbl:"21 May – 2 Jun",date:"2026-05-21",tags:["p"],exam:null,note:"13 days. 1 MCQ paper/day.",tasks:[
+    {d:"dp",t:"Physics P11 MCQ: 1 paper/day. Read every option. Check understanding.",time:"60 min"},
+    {d:"dr",t:"Everything else is done.",time:""}]},
+  {phase:3,lbl:"3 Jun — EXAM",date:"2026-06-03",tags:["e","p"],exam:"Physics P11 — Multiple Choice",tasks:[
+    {d:"dp",t:"Morning: MCQ technique. Read all options before committing.",time:"20 min"},
+    {d:"dr",t:"You're done. Celebrate.",time:""}]},
+];
+
+const tagLabel={m:"maths",p:"physics",c:"comp sci",r:"rest",e:"exam"};
+const tagClass={m:"dtag-m",p:"dtag-p",c:"dtag-c",r:"dtag-r",e:"dtag-e"};
+let API_KEY='';
+let currentPhase=1;
+let checkedDays={};
+let stats=JSON.parse(JSON.stringify(DEFAULT_STATS));
+let planData=JSON.parse(JSON.stringify(DEFAULT_PLAN));
+
+function today(){return new Date().toISOString().split('T')[0];}
+function daysUntil(d){return Math.round((new Date(d)-new Date(today()))/86400000);}
+function formatToday(){return new Date().toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'});}
+
+function submitKey(){
+  const val=document.getElementById('keyInput').value.trim();
+  if(!val.startsWith('sk-ant-')){document.getElementById('keyErr').style.display='block';return;}
+  API_KEY=val;
+  localStorage.setItem('sp_api_key',val);
+  document.getElementById('keyScreen').classList.add('hidden');
+}
+function resetKey(){
+  localStorage.removeItem('sp_api_key');API_KEY='';
+  document.getElementById('keyInput').value='';
+  document.getElementById('keyErr').style.display='none';
+  document.getElementById('keyScreen').classList.remove('hidden');
+}
+
+async function loadStorage(){
+  try{const r=await window.storage.get('checked_days');if(r)checkedDays=JSON.parse(r.value);}catch(e){}
+  try{const r=await window.storage.get('stats_data');if(r)stats=JSON.parse(r.value);}catch(e){}
+  try{const r=await window.storage.get('plan_data');if(r)planData=JSON.parse(r.value);}catch(e){}
+}
+async function saveAll(){
+  try{await window.storage.set('checked_days',JSON.stringify(checkedDays));}catch(e){}
+  try{await window.storage.set('stats_data',JSON.stringify(stats));}catch(e){}
+  try{await window.storage.set('plan_data',JSON.stringify(planData));}catch(e){}
+}
+
+function renderExams(){
+  document.getElementById('examList').innerHTML=EXAMS.map(e=>{
+    const d=daysUntil(e.date);if(d<-1)return'';
+    const cls=d<=10?'days-urgent':d<=30?'days-soon':'days-ok';
+    return`<div class="exam-item"><div class="exam-days ${cls}">${d<0?'✓':d+'d'}</div><div class="exam-info"><div class="exam-name">${e.short}</div><div class="exam-date">${e.date}</div></div></div>`;
+  }).join('');
+}
+function renderStats(){
+  document.getElementById('statsPanel').innerHTML=stats.map(s=>`
+    <div class="stat-row"><div class="stat-label">${s.label}</div>
+    <div class="stat-bar"><div class="stat-fill" style="width:${s.pct}%;background:${s.color}"></div></div>
+    <div class="stat-val">${s.pct?s.pct+'%':'—'}</div></div>`).join('');
+}
+function renderPlan(){
+  const el=document.getElementById('planBody'),t=today();
+  el.innerHTML=planData.filter(d=>d.phase===currentPhase).map(day=>{
+    const isToday=day.date===t,isExam=!!day.exam,isDone=checkedDays[day.date];
+    const tagsHtml=day.tags.map(tg=>`<span class="dtag ${tagClass[tg]}">${tagLabel[tg]}</span>`).join('');
+    const examHtml=day.exam?`<div class="exam-banner">EXAM · ${day.exam}</div>`:'';
+    const noteHtml=day.note?`<div class="note-banner">${day.note}</div>`:'';
+    const aiHtml=day.aiNote?`<div class="ai-note">${day.aiNote}</div>`:'';
+    const tasksHtml=day.tasks.map(tk=>`<li class="task-item"><span class="task-dot ${tk.d}"></span><span>${tk.t}</span>${tk.time?`<span class="task-time">${tk.time}</span>`:''}</li>`).join('');
+    return`<div class="day-card${isToday?' today':''}${isExam?' exam-day':''}${isDone?' done':''}" id="card-${day.date}">
+      <div class="day-hdr" onclick="toggleDay('${day.date}')">
+        <div class="day-date">${day.date}</div><div class="day-label">${day.lbl}</div>
+        <div class="day-tags">${tagsHtml}</div>
+        <div class="done-check${isDone?' checked':''}" onclick="event.stopPropagation();toggleDone('${day.date}')" title="Mark done">✓</div>
+        <div class="chevron" id="chev-${day.date}">▼</div>
+      </div>
+      <div class="day-body" id="body-${day.date}">${examHtml}${noteHtml}${aiHtml}<ul class="task-list">${tasksHtml}</ul></div>
+    </div>`;
+  }).join('');
+  const todayCard=planData.find(d=>d.date===t&&d.phase===currentPhase);
+  if(todayCard){const b=document.getElementById('body-'+t),c=document.getElementById('chev-'+t);if(b){b.classList.add('open');c&&c.classList.add('open');}}
+}
+function toggleDay(date){
+  const b=document.getElementById('body-'+date),c=document.getElementById('chev-'+date);
+  if(!b)return;const open=b.classList.contains('open');
+  b.classList.toggle('open',!open);c&&c.classList.toggle('open',!open);
+}
+function toggleDone(date){
+  checkedDays[date]=!checkedDays[date];
+  const card=document.getElementById('card-'+date),check=card&&card.querySelector('.done-check');
+  if(card)card.classList.toggle('done',checkedDays[date]);
+  if(check)check.classList.toggle('checked',checkedDays[date]);
+  saveAll();
+}
+function switchPhase(n){
+  currentPhase=n;
+  document.querySelectorAll('.phase-tab').forEach((t,i)=>t.classList.toggle('active',i+1===n));
+  renderPlan();
+}
+
+async function sendMessage(){
+  const inp=document.getElementById('chatInput');
+  const msg=inp.value.trim();if(!msg)return;
+  inp.value='';inp.style.height='auto';
+  addMsg(msg,'user');
+  const thinking=addThinking();
+  document.getElementById('sendBtn').disabled=true;
+
+  const systemPrompt=`You are a study plan assistant for an AS-level student. Subjects: Maths (targeting A*), Physics (A), Computer Science (A).
+Exams: Physics P31: 28 Apr 2026, Maths Pure 1: 29 Apr 2026, Maths Mechanics: 6 May 2026, CS Theory: 8 May 2026, Maths Stats: 12 May 2026, CS Prog Skills: 13 May 2026, Maths Pure 3: 15 May 2026, Physics P21: 20 May 2026, Physics P11: 3 Jun 2026.
+Today: ${today()}. Study leave starts 8 Apr 2026 (full days). Before that: half days, ~2h study max.
+Current stats: ${JSON.stringify(stats)}
+Current plan: ${JSON.stringify(planData)}
+When the student tells you anything — a grade, skipped sessions, upcoming test, feeling behind — reply with 2-3 sentences max (blunt, no fluff), then replan affected days and update stats if needed.
+ALWAYS output at the very end:
+STATS_UPDATE:${JSON.stringify(stats)}
+PLAN_UPDATE:${JSON.stringify(planData)}
+Rules: same JSON structure, only modify what needs changing, never remove exam days, redistribute missed work sensibly across future days, for stats color use "var(--maths)" for maths, "var(--physics)" for physics, "var(--cs)" for CS, "var(--muted2)" if pct is 0, for task d values: "dm"=maths, "dp"=physics, "dc"=CS, "dr"=rest.`;
+
+  try{
+    const res=await fetch(PROXY_URL,{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({
+        apiKey:API_KEY,
+        model:"claude-sonnet-4-20250514",
+        max_tokens:4000,
+        system:systemPrompt,
+        messages:[{role:"user",content:msg}]
+      })
+    });
+    const data=await res.json();
+    const text=data.content?.filter(b=>b.type==='text').map(b=>b.text).join('')||'Something went wrong.';
+    const statsMatch=text.match(/STATS_UPDATE:(\[[\s\S]*?\])(?=\s*PLAN_UPDATE:)/);
+    if(statsMatch){try{stats=JSON.parse(statsMatch[1]);}catch(e){}}
+    const planMatch=text.match(/PLAN_UPDATE:(\[[\s\S]*\])$/);
+    if(planMatch){try{planData=JSON.parse(planMatch[1]);}catch(e){}}
+    await saveAll();renderStats();renderPlan();
+    const clean=text.replace(/STATS_UPDATE:[\s\S]*/,'').trim();
+    thinking.remove();addMsg(clean,'ai');
+  }catch(e){
+    thinking.remove();addMsg('Error reaching API. Check your connection.','ai');
+  }
+  document.getElementById('sendBtn').disabled=false;
+}
+
+function addMsg(text,type){
+  const el=document.getElementById('chatMessages');
+  const div=document.createElement('div');
+  div.className=`msg msg-${type}`;div.textContent=text;
+  el.appendChild(div);el.scrollTop=el.scrollHeight;return div;
+}
+function addThinking(){
+  const el=document.getElementById('chatMessages');
+  const div=document.createElement('div');
+  div.className='msg-thinking';
+  div.innerHTML='<div class="dot-pulse"></div><div class="dot-pulse"></div><div class="dot-pulse"></div>';
+  el.appendChild(div);el.scrollTop=el.scrollHeight;return div;
+}
+
+document.getElementById('chatInput').addEventListener('input',function(){
+  this.style.height='auto';this.style.height=Math.min(this.scrollHeight,100)+'px';
+});
+document.getElementById('chatInput').addEventListener('keydown',function(e){
+  if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage();}
+});
+document.getElementById('keyInput').addEventListener('keydown',function(e){
+  if(e.key==='Enter')submitKey();
+});
+
+document.getElementById('todayBadge').textContent=formatToday();
+
+async function init(){
+  const savedKey=localStorage.getItem('sp_api_key');
+  if(savedKey&&savedKey.startsWith('sk-ant-')){
+    API_KEY=savedKey;document.getElementById('keyScreen').classList.add('hidden');
+  }
+  await loadStorage();renderExams();renderStats();renderPlan();
+  const t=today();
+  if(t>='2026-04-08'&&t<'2026-04-28')switchPhase(2);
+  else if(t>='2026-04-28')switchPhase(3);
+}
+init();
+</script>
+</body>
+</html>
